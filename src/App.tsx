@@ -32,9 +32,11 @@ function App() {
         method: "eth_requestAccounts",
       })) as React.SetStateAction<string>[];
 
-      setSelectedWallet(() => providerWithInfo);
-      setUserAccount(() => accounts?.[0].toString().toUpperCase());
-      setShowProviders(() => false);
+      setSelectedWallet(value => value = providerWithInfo);
+      setUserAccount(
+        (value) => (value = accounts?.[0].toString().toUpperCase()),
+      );
+      setShowProviders((value) => (value = false));
     } catch (error) {
       console.error(error);
     }
@@ -83,7 +85,7 @@ function App() {
   useEffect(() => {
     const initManager = async () => {
       const contract = lottery.methods;
-      setIsDataLoading(true);
+      
       try {
         const contractManager = await contract.manager().call();
         const contractPlayers: string[] = (await contract
