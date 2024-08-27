@@ -11,7 +11,7 @@ import { Button } from "./components/ui/button";
 import { Loader2 } from "lucide-react";
 
 function App() {
-  const [manager, setManager] = useState("");
+  const [manager, setManager] = useState<string>("");
   const [players, setPlayers] = useState<string[]>([]);
   const [balance, setBalance] = useState("");
   const [showProviders, setShowProviders] = useState(true);
@@ -22,6 +22,7 @@ function App() {
   const [isEnterLoading, setIsEnterLoading] = useState(false);
   const [isWinnerLoading, setIsWinnerLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(false);
+  const [isManager, setIsManager] = useState(false);
 
   const step = 0.0001;
 
@@ -32,11 +33,14 @@ function App() {
         method: "eth_requestAccounts",
       })) as React.SetStateAction<string>[];
 
-      setSelectedWallet(value => value = providerWithInfo);
+      setSelectedWallet(value => providerWithInfo);
+      setShowProviders(value => false);
+      console.log('prev user state: ', userAccount)
       setUserAccount(
         (value) => (value = accounts?.[0].toString().toUpperCase()),
       );
-      setShowProviders((value) => (value = false));
+      console.log("new user state: ", userAccount);
+      setIsManager(userAccount === manager)
     } catch (error) {
       console.error(error);
     }
@@ -85,33 +89,32 @@ function App() {
   useEffect(() => {
     const initManager = async () => {
       const contract = lottery.methods;
-      
+
       try {
         const contractManager = await contract.manager().call();
-        const contractPlayers: string[] = (await contract
-          .getPlayers()
-          .call()) as string[];
+        console.log("contractManager: ", contractManager);
+
+        const contractPlayers:string[] = await contract.getPlayers().call() as string[];
         const contractBalance = await web3.eth.getBalance(
           lottery.options.address,
         );
 
-        setManager((value) => (value = contractManager));
-        setPlayers((value) => (value = [...new Set(contractPlayers)]));
-        setBalance((value) => (value = contractBalance));
+        setManager(contractManager.toUpperCase());
+        setPlayers([...new Set(contractPlayers)]);
+        setBalance(contractBalance);
         setIsDataLoading(false);
       } catch (e) {
         console.log("AN ERROR HAS OCCURRED WHILE FETCHING DATA:");
         console.log(e);
       }
     };
-    return () => {
-      try {
-        initManager();
-      } catch (e) {
-        console.log(e);
-      }
-    };
+
+    // Call the async function inside useEffect
+    initManager();
+
+    // Empty dependency array ensures this only runs once
   }, []);
+
 
   return (
     <div className='App h-full pt-56 '>
@@ -136,9 +139,10 @@ function App() {
               )}
               <h1 className='text-3xl max-w-3xl '>
                 {" "}
-                There are <strong>{players.length}</strong> {players.length === 1 ? "person" :"people"} entered,
-                competing to win{" "}
-                <strong>{web3.utils.fromWei(balance, "ether")}</strong> ether!
+                There are <strong>{players.length}</strong>{" "}
+                {players.length === 1 ? "person" : "people"} entered, competing
+                to win <strong>{web3.utils.fromWei(balance, "ether")}</strong>{" "}
+                ether!
               </h1>
             </div>
           </>
@@ -179,7 +183,7 @@ function App() {
         </form>
       )}
 
-      {!isDataLoading &&
+      {manager !== "" &&
         userAccount.toUpperCase() === manager.toUpperCase() && (
           <div className='absolute top-8 right-8'>
             <div className=' hover:animate-bounce hover:duration-1000 hover:py-4'>
@@ -200,11 +204,13 @@ function App() {
 
       <DiscoverWalletProviders
         showProviders={showProviders}
+        manager={manager}
         onConnect={handleConnect}
         providers={providers}
         userAccount={userAccount}
         wallet={selectedWallet}
         setShowProviders={setShowProviders}
+        isManager={isManager}
       />
     </div>
   );
